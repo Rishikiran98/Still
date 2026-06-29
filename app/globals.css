@@ -1,0 +1,51 @@
+:root {
+  --accent: #bf8170;
+  --accent-soft: rgba(191,129,112,0.13);
+  --accent-dim: rgba(191,129,112,0.22);
+  --accent-line: rgba(191,129,112,0.45);
+  --accent-text: rgba(191,129,112,0.62);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #15140f;
+  min-height: 100%;
+}
+
+textarea::placeholder {
+  color: #4a463c;
+  font-style: italic;
+}
+
+textarea {
+  caret-color: var(--accent, #c9a24b);
+}
+
+::selection {
+  background: var(--accent-dim, rgba(201,162,75,.22));
+}
+
+@keyframes echoSlide {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes softPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
