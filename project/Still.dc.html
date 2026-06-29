@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#15140f;}
+  *{box-sizing:border-box;}
+  textarea::placeholder{color:#4a463c;font-style:italic;}
+  textarea{caret-color:var(--accent,#c9a24b);}
+  ::selection{background:var(--accent-dim,rgba(201,162,75,.22));}
+  @keyframes echoSlide{from{transform:translateY(14px);}to{transform:none;}}
+  @keyframes softPulse{0%,100%{opacity:.35;}50%{opacity:.9;}}
+  @keyframes breathe{0%,100%{opacity:.5;}50%{opacity:.85;}}
+</style>
+</helmet>
+<div data-screen-label="Still — app root" style="min-height:100vh;background:#15140f;color:#e8e2d4;font-family:'Newsreader',Georgia,serif;position:relative;overflow:hidden">
+
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(120% 90% at 50% -10%, rgba(201,162,75,.05), transparent 55%), radial-gradient(100% 80% at 50% 120%, rgba(0,0,0,.5), transparent 60%)"></div>
+
+  <nav style="position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:24px 36px;z-index:50">
+    <div onClick="{{ goWrite }}" style="font-family:'Newsreader',serif;font-weight:400;font-size:21px;letter-spacing:.02em;color:#e8e2d4;cursor:pointer;font-style:italic">still<span style="color:var(--accent,#c9a24b)">.</span></div>
+    <div style="display:flex;gap:26px;align-items:center">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="3">
+        <span onClick="{{ item.onClick }}" data-nav="{{ item.key }}" style="{{ item.styleObj }}">{{ item.label }}</span>
+      </sc-for>
+    </div>
+  </nav>
+
+  <!-- ════════ CAPTURE ════════ -->
+  <sc-if value="{{ isCapture }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Capture" style="position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:150px 32px 80px">
+    <div style="width:100%;max-width:660px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:34px">
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#7c7666">{{ todayLabel }}</div>
+        <div onClick="{{ newEntry }}" style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#615b4f;cursor:pointer;transition:color .3s" style-hover="color:var(--accent,#c9a24b)">+ new reflection</div>
+      </div>
+      <textarea value="{{ draft }}" onInput="{{ onInput }}" placeholder="Begin where you are…" style="width:100%;min-height:300px;background:transparent;border:none;outline:none;resize:none;font-family:'Newsreader',Georgia,serif;font-weight:300;font-size:25px;line-height:1.72;color:#e8e2d4;letter-spacing:.005em"></textarea>
+
+      <div style="margin-top:30px;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:42px;border-top:1px solid rgba(232,226,212,.07);padding-top:22px">
+        <div style="display:flex;align-items:center;gap:12px;font-family:'Spline Sans Mono',monospace;font-size:11.5px;letter-spacing:.04em;color:#7c7666">
+          <sc-if value="{{ listening }}" hint-placeholder-val="{{ true }}">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--accent,#c9a24b);display:inline-block;animation:softPulse 2.4s ease-in-out infinite"></span>
+            <span>listening · <span style="color:var(--accent,#c9a24b)">{{ nearbyCount }} echoes</span> nearby</span>
+          </sc-if>
+        </div>
+        <sc-if value="{{ listening }}" hint-placeholder-val="{{ true }}">
+          <span onClick="{{ surface }}" style="font-family:'Spline Sans Mono',monospace;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#e8e2d4;border:1px solid var(--accent-line,rgba(201,162,75,.45));padding:11px 20px;border-radius:2px;cursor:pointer;white-space:nowrap;transition:all .3s" style-hover="background:var(--accent-soft,rgba(201,162,75,.12));border-color:var(--accent,#c9a24b)">Save &amp; surface connections →</span>
+        </sc-if>
+      </div>
+
+      <div style="margin-top:26px;font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.05em;color:#514c42;line-height:1.7;display:flex;gap:9px;align-items:flex-start">
+        <span style="color:#6b6557">⌖</span>
+        <span>This saves as a new reflection. Earlier versions are kept — nothing you write is ever overwritten.</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ════════ SURFACING ════════ -->
+  <sc-if value="{{ isSurfacing }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Surfacing" style="position:relative;z-index:10;min-height:100vh;padding:104px 0 60px">
+    <div style="max-width:1120px;margin:0 auto 18px;padding:0 32px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px">
+      <div>
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#c9a24b);margin-bottom:7px">The app noticed</div>
+        <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:300;font-size:23px;color:#cfc8b8">Four past reflections lean toward this one.</div>
+      </div>
+      <div style="display:flex;gap:18px;align-items:center;font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase">
+        <span style="color:#514c42">arrange</span>
+        <sc-for list="{{ modeTabs }}" as="tab" hint-placeholder-count="3">
+          <span onClick="{{ tab.onClick }}" style="{{ tab.styleObj }}">{{ tab.label }}</span>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="{{ stageWrapStyle }}">
+    <div style="{{ stageStyle }}">
+      <svg viewBox="{{ svgViewBox }}" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2">
+        <sc-if value="{{ axisShow }}" hint-placeholder-val="{{ false }}">
+          <line x1="{{ axisX }}" y1="40" x2="{{ axisX }}" y2="690" style="{{ axisStyle }}"></line>
+        </sc-if>
+        <sc-for list="{{ echoes }}" as="echo" hint-placeholder-count="4">
+          <path d="{{ echo.threadD }}" style="{{ echo.threadStyle }}"></path>
+        </sc-for>
+      </svg>
+
+      <!-- current entry -->
+      <div style="{{ curStyleObj }}">
+        <div style="position:relative;padding:2px 4px">
+          <div style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#c9a24b);margin-bottom:14px;display:flex;align-items:center;gap:9px"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent,#c9a24b);display:inline-block"></span>Today · just now</div>
+          <div style="font-family:'Newsreader',serif;font-weight:300;font-size:21px;line-height:1.62;color:#f0eadc;letter-spacing:.005em">{{ draft }}</div>
+        </div>
+      </div>
+
+      <!-- echoes -->
+      <sc-for list="{{ echoes }}" as="echo" hint-placeholder-count="4">
+        <div style="{{ echo.styleObj }}">
+          <div onClick="{{ echo.open }}" style="background:#1c1a14;border:1px solid rgba(232,226,212,.08);border-radius:3px;padding:17px 20px 18px;cursor:pointer;transition:border-color .35s,transform .35s,background .35s;box-shadow:0 8px 30px rgba(0,0,0,.35)" style-hover="border-color:rgba(201,162,75,.5);transform:translateY(-2px);background:#211e16">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px">
+              <span style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#7c7666">{{ echo.date }}</span>
+              <span style="font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.08em;color:{{ echo.relColor }}">{{ echo.relLabel }}</span>
+            </div>
+            <div style="font-family:'Newsreader',serif;font-weight:300;font-size:16.5px;line-height:1.52;color:#e3ddcf;margin-bottom:14px">{{ echo.text }}</div>
+            <sc-if value="{{ showReadings }}" hint-placeholder-val="{{ true }}">
+            <div style="border-top:1px dashed var(--accent-dim,rgba(201,162,75,.22));padding-top:11px">
+              <div style="font-family:'Spline Sans Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#8a7a4a;margin-bottom:5px">{{ readingLabel }}</div>
+              <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:300;font-size:13.5px;line-height:1.45;color:#9c9484">{{ echo.reason }}</div>
+            </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </div>
+
+    <div style="max-width:1120px;margin:8px auto 0;padding:0 32px;font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.05em;color:#514c42;line-height:1.7;text-align:center">
+      Connections and reasons are the app's interpretation, offered quietly. {{ toneNote }}
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ════════ ENTRY DETAIL ════════ -->
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Entry detail" style="position:relative;z-index:10;min-height:100vh;padding:118px 32px 80px">
+    <div style="max-width:980px;margin:0 auto;display:grid;grid-template-columns:1fr 300px;gap:64px;align-items:start">
+      <div>
+        <div onClick="{{ goBack }}" style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7c7666;cursor:pointer;margin-bottom:38px;display:inline-flex;align-items:center;gap:8px;transition:color .3s" style-hover="color:var(--accent,#c9a24b)">← back to your story</div>
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#c9a24b);margin-bottom:22px">{{ activeEntry.date }}, {{ activeEntry.year }}</div>
+        <div style="font-family:'Newsreader',serif;font-weight:300;font-size:30px;line-height:1.55;color:#f0eadc;letter-spacing:.004em">{{ activeEntry.text }}</div>
+
+        <div style="margin-top:54px;border-top:1px solid rgba(232,226,212,.08);padding-top:26px">
+          <div style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8a7a4a;margin-bottom:20px">Connections the app drew</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ activeEntry.links }}" as="link" hint-placeholder-count="2">
+              <div onClick="{{ link.open }}" style="padding:16px 0;border-bottom:1px solid rgba(232,226,212,.05);cursor:pointer;display:flex;gap:18px;align-items:flex-start;transition:padding-left .3s" style-hover="padding-left:8px">
+                <span style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.12em;color:#7c7666;white-space:nowrap;padding-top:4px;min-width:54px">{{ link.date }}</span>
+                <div>
+                  <div style="font-family:'Newsreader',serif;font-weight:300;font-size:16px;line-height:1.5;color:#d8d2c4;margin-bottom:6px">{{ link.text }}</div>
+                  <sc-if value="{{ showReadings }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-family:'Newsreader',serif;font-style:italic;font-size:13px;color:#9c9484;line-height:1.45">{{ link.reason }}</div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <aside style="background:#1a1812;border:1px solid rgba(232,226,212,.07);border-radius:3px;padding:22px 22px 24px">
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#7c7666;margin-bottom:18px">History</div>
+        <div style="position:relative;padding-left:18px">
+          <div style="position:absolute;left:3px;top:6px;bottom:6px;width:1px;background:var(--accent-dim,rgba(201,162,75,.25))"></div>
+          <sc-for list="{{ activeEntry.revisions }}" as="rev" hint-placeholder-count="2">
+            <div style="position:relative;margin-bottom:20px">
+              <span style="position:absolute;left:-18px;top:5px;width:7px;height:7px;border-radius:50%;background:{{ rev.dot }};border:1px solid #15140f"></span>
+              <div style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:#cfc8b8;margin-bottom:3px">{{ rev.when }}</div>
+              <div style="font-family:'Newsreader',serif;font-style:italic;font-size:13px;color:#8f877a;line-height:1.45">{{ rev.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:8px;border-top:1px solid rgba(232,226,212,.06);padding-top:14px;font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.04em;color:#514c42;line-height:1.7">Nothing is ever overwritten. Each edit is kept beside the words that came before it.</div>
+      </aside>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ════════ THEMES OVER TIME ════════ -->
+  <sc-if value="{{ isThemes }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Themes over time" style="position:relative;z-index:10;min-height:100vh;padding:118px 32px 80px">
+    <div style="max-width:820px;margin:0 auto">
+      <div style="font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#c9a24b);margin-bottom:14px">Threads over time</div>
+      <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:300;font-size:24px;line-height:1.5;color:#cfc8b8;max-width:580px;margin-bottom:8px">Patterns the app gathered from across your reflections.</div>
+      <div style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:#7c7666;margin-bottom:50px">These are the app's interpretations — not labels you chose.</div>
+
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ themes }}" as="th" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:1fr 180px 64px;gap:34px;align-items:center;padding:24px 0;border-top:1px solid rgba(232,226,212,.07)">
+            <div>
+              <div style="font-family:'Newsreader',serif;font-weight:300;font-size:22px;color:#e8e2d4;margin-bottom:5px">{{ th.name }}</div>
+              <div style="font-family:'Newsreader',serif;font-style:italic;font-size:14px;color:#8f877a">“…{{ th.excerpt }}…”</div>
+            </div>
+            <svg viewBox="0 0 170 34" style="width:170px;height:34px;overflow:visible">
+              <polygon points="{{ th.areaPoints }}" style="fill:var(--accent-soft,rgba(201,162,75,.08))"></polygon>
+              <polyline points="{{ th.sparkPoints }}" style="fill:none;stroke:var(--accent,#c9a24b);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.8"></polyline>
+            </svg>
+            <div style="text-align:right;font-family:'Spline Sans Mono',monospace;font-size:11px;letter-spacing:.04em;color:#cfc8b8">{{ th.count }}<span style="color:#514c42;font-size:9px;display:block;letter-spacing:.1em;margin-top:3px">entries</span></div>
+          </div>
+        </sc-for>
+        <div style="border-top:1px solid rgba(232,226,212,.07)"></div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ════════ YOUR STORY ════════ -->
+  <sc-if value="{{ isStory }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Your story" style="position:relative;z-index:10;min-height:100vh;padding:104px 0 56px">
+    <div style="max-width:1180px;margin:0 auto 4px;padding:0 36px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px">
+      <div>
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#c9a24b);margin-bottom:8px">Your story · {{ storyCount }} reflections</div>
+        <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:300;font-size:25px;color:#cfc8b8">Everything you have written, and the threads between.</div>
+      </div>
+      <div style="display:flex;gap:18px;align-items:center;font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase">
+        <span style="color:#514c42">shape</span>
+        <sc-for list="{{ storyTabs }}" as="tab" hint-placeholder-count="3">
+          <span onClick="{{ tab.onClick }}" style="{{ tab.styleObj }}">{{ tab.label }}</span>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="max-width:1180px;margin:0 auto;width:100%">
+      <svg viewBox="{{ storyViewBox }}" style="width:100%;height:540px;overflow:visible;display:block">
+        <sc-for list="{{ storyLinks }}" as="ln" hint-placeholder-count="7">
+          <line x1="{{ ln.x1 }}" y1="{{ ln.y1 }}" x2="{{ ln.x2 }}" y2="{{ ln.y2 }}" style="{{ ln.style }}"></line>
+        </sc-for>
+        <sc-for list="{{ storyNodes }}" as="nd" hint-placeholder-count="7">
+          <g onClick="{{ nd.open }}" onMouseEnter="{{ nd.onEnter }}" onMouseLeave="{{ nd.onLeave }}" style="cursor:pointer">
+            <circle cx="{{ nd.cx }}" cy="{{ nd.cy }}" r="{{ nd.ringR }}" style="{{ nd.ringStyle }}"></circle>
+            <circle cx="{{ nd.cx }}" cy="{{ nd.cy }}" r="{{ nd.r }}" style="{{ nd.circleStyle }}"></circle>
+            <text x="{{ nd.cx }}" y="{{ nd.labelY }}" style="{{ nd.labelStyle }}">{{ nd.label }}</text>
+          </g>
+        </sc-for>
+      </svg>
+
+      <div style="min-height:78px;margin-top:6px;padding:0 36px;display:flex;justify-content:center;align-items:flex-start">
+        <sc-if value="{{ hoverEntry }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width:640px;text-align:center">
+            <div style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text,#9c8a52);margin-bottom:9px">{{ hoverEntry.date }}, {{ hoverEntry.year }}</div>
+            <div style="font-family:'Newsreader',serif;font-style:italic;font-weight:300;font-size:18px;line-height:1.5;color:#e3ddcf">“{{ hoverEntry.text }}”</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ storyIdle }}" hint-placeholder-val="{{ true }}">
+          <div style="font-family:'Spline Sans Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:#514c42">Hover a reflection to read it in your own words · click to open it</div>
+        </sc-if>
+      </div>
+
+      <div style="max-width:1180px;margin:4px auto 0;padding:0 36px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="5">
+            <span style="display:flex;align-items:center;gap:7px;font-family:'Spline Sans Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#857c6d"><span style="{{ lg.dotStyle }}"></span>{{ lg.name }}</span>
+          </sc-for>
+        </div>
+        <div style="font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.04em;color:#514c42">{{ userCount }} written by you · larger node = more connected · the threads are the app’s reading</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#bf8170&quot;,&quot;options&quot;:[&quot;#c9a24b&quot;,&quot;#7f9b8e&quot;,&quot;#bf8170&quot;,&quot;#9a8fc0&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Appearance&quot;},&quot;showReadings&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Interpretation&quot;},&quot;mirrorTone&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;gentle&quot;,&quot;options&quot;:[&quot;gentle&quot;,&quot;unflinching&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Interpretation&quot;},&quot;storyShape&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;web&quot;,&quot;options&quot;:[&quot;web&quot;,&quot;spiral&quot;,&quot;timeline&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Your story&quot;}}">
+class Component extends DCLogic {
+  DEFAULT = "I've been moving fast all week and I can't tell if any of it mattered. I want to slow down, but I don't know how to trust that slowing down isn't just another word for falling behind.";
+
+  ENTRIES = [
+    { id:'e1', date:'Mar 3', year:'2026', rel:'strong',
+      text:'I keep mistaking motion for progress. Today I did six things and remembered none of them.',
+      themes:['restlessness','attention'],
+      reason:'Both name the gap between doing and meaning — the suspicion that being busy is hiding from something.',
+      reasonSharp:'You\u2019ve written this exact worry three times now, and not once changed what you did the next day.',
+      revisions:[ {when:'Mar 3 · 7:42am', note:'First written'}, {when:'Mar 4 · 8:10am', note:'Added the second sentence the next morning'} ],
+      links:[ {id:'e5', reason:'Both circle the fear that resting is failing.'}, {id:'e2', reason:'Attention is the thing motion quietly costs you.'} ] },
+    { id:'e5', date:'Dec 14', year:'2025', rel:'strong',
+      text:'Rest still feels like something I have to earn. Who taught me that?',
+      themes:['rest','restlessness'],
+      reason:'A recurring worry that slowing down means falling behind — the same knot, asked a different way.',
+      reasonSharp:'\u201cWho taught me that?\u201d keeps returning because you keep declining to answer it.',
+      revisions:[ {when:'Dec 14 · 9:14pm', note:'First written'} ],
+      links:[ {id:'e1', reason:'The motion you mistake for progress is the rest you won\u2019t allow.'}, {id:'e6', reason:'The sea rests without needing to earn it.'} ] },
+    { id:'e2', date:'Feb 18', year:'2026', rel:'medium',
+      text:"The mornings I don't reach for my phone are the mornings I actually hear myself think.",
+      themes:['stillness','mornings','attention'],
+      reason:'Stillness offered as a way back to yourself — the slowing-down you keep reaching toward.',
+      reasonSharp:'You already know what mornings do for you. You\u2019ve decided that knowing isn\u2019t the same as doing.',
+      revisions:[ {when:'Feb 18 · 6:55am', note:'First written'}, {when:'Feb 20 · 7:30am', note:'Softened \u201csilence\u201d to \u201chear myself think\u201d'} ],
+      links:[ {id:'e1', reason:'What motion takes, a quiet morning gives back.'}, {id:'e6', reason:'Both trust a slower pace to arrive anyway.'} ] },
+    { id:'e6', date:'Nov 30', year:'2025', rel:'soft',
+      text:"The sea doesn't rush, and it still gets everywhere it needs to be.",
+      themes:['patience','stillness'],
+      reason:'An older image of unhurried arrival — a gentler answer to the same question you\u2019re asking now.',
+      reasonSharp:'You wrote this when it was easy to believe. The test is whether it survives a busy week — like this one.',
+      revisions:[ {when:'Nov 30 · 8:02pm', note:'First written'} ],
+      links:[ {id:'e5', reason:'Permission to rest, borrowed from the tide.'}, {id:'e2', reason:'Both are about trusting a slower pace.'} ] },
+  ];
+
+  THEMES = [
+    { name:'restlessness', count:9, excerpt:'mistaking motion for progress', months:[1,2,1,3,1,1] },
+    { name:'stillness',    count:7, excerpt:'the mornings I hear myself think', months:[0,1,1,2,1,2] },
+    { name:'rest',         count:5, excerpt:'something I have to earn', months:[1,0,1,0,2,1] },
+    { name:'honesty',      count:4, excerpt:'I told her I was fine', months:[2,0,1,0,1,0] },
+    { name:'patience',     count:3, excerpt:'the sea doesn\u2019t rush', months:[1,0,1,0,1,0] },
+  ];
+
+  THEME_COLORS = { restlessness:'accent', stillness:'#7f9b8e', rest:'#bf8170', attention:'#9a8fc0', honesty:'#c98a6b', patience:'#8a93a8', mornings:'#cbb26a', reflection:'#9c9484' };
+
+  LEX = {
+    restlessness:['fast','busy','motion','rush','behind','scattered','racing','overwhelm','too much','spinning','hurry'],
+    stillness:['quiet','slow','still','calm','breathe','pause','silence','settle'],
+    rest:['rest','tired','earn','sleep','exhausted','break','weary','burn'],
+    attention:['notice','attention','present','focus','distract','phone','remember','forget','here'],
+    honesty:['honest','truth','admit','afraid','fear','pretend','fine','hide','mask'],
+    patience:['patient','wait','trust','eventually','time','slowly'],
+    mornings:['morning','wake','dawn','early','sunrise']
+  };
+
+  state = { screen:'capture', draft:this.DEFAULT, mode:'margin', activeId:'e1', journal:[], storyShape:null };
+
+  componentDidMount(){
+    if(!this._bound){
+      this._bound = true;
+      this._onR = () => this.forceUpdate();
+      window.addEventListener('resize', this._onR);
+    }
+    this.setState({ journal: this.loadJournal() });
+    this.applyAccent();
+    this.updateNav();
+  }
+  componentDidUpdate(){ this.applyAccent(); this.updateNav(); }
+  componentWillUnmount(){ if(this._onR) window.removeEventListener('resize', this._onR); }
+
+  updateNav(){
+    const s=this.state.screen, active = s==='detail' ? 'story' : s;
+    document.querySelectorAll('[data-nav]').forEach(el=>{
+      el.style.color = el.getAttribute('data-nav')===active ? '#e8e2d4' : '#615b4f';
+    });
+  }
+
+  hexA(hex, a){
+    const h=(hex||'#c9a24b').replace('#','');
+    const f=h.length===3?h.split('').map(c=>c+c).join(''):h;
+    const n=parseInt(f,16), r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  applyAccent(){
+    const A=this.props.accent||'#c9a24b';
+    const root=document.documentElement;
+    root.style.setProperty('--accent', A);
+    root.style.setProperty('--accent-soft', this.hexA(A,0.13));
+    root.style.setProperty('--accent-dim', this.hexA(A,0.22));
+    root.style.setProperty('--accent-line', this.hexA(A,0.45));
+    root.style.setProperty('--accent-text', this.hexA(A,0.62));
+  }
+  themeColor(t){ const c=this.THEME_COLORS[t]; return (!c||c==='accent') ? (this.props.accent||'#c9a24b') : c; }
+
+  loadJournal(){ try{ return JSON.parse(localStorage.getItem('still.journal.v1')||'[]'); }catch(e){ return []; } }
+  persist(journal){ try{ localStorage.setItem('still.journal.v1', JSON.stringify(journal)); }catch(e){} }
+
+  shortDate(d){ return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getDate(); }
+  timeStr(d){ let h=d.getHours(); const ap=h<12?'am':'pm'; h=h%12||12; return h+':'+String(d.getMinutes()).padStart(2,'0')+ap; }
+  tagThemes(text){
+    const t=(text||'').toLowerCase(); const out=[];
+    for(const k in this.LEX){ if(this.LEX[k].some(w=>t.includes(w))) out.push(k); }
+    return out.length ? out.slice(0,3) : ['reflection'];
+  }
+  saveDraft(){
+    const t=(this.state.draft||'').trim();
+    if(!t) return null;
+    const j=this.state.journal;
+    if(j.length && j[0].text===t) return j[0];
+    const now=new Date();
+    const entry={ id:'u'+Date.now(), user:true, date:this.shortDate(now), year:''+now.getFullYear(),
+      text:t, themes:this.tagThemes(t),
+      revisions:[{ when:this.shortDate(now)+' · '+this.timeStr(now), note:'First written' }] };
+    const journal=[entry, ...j];
+    this.persist(journal);
+    this.setState({ journal });
+    return entry;
+  }
+  newEntry(){ this.setState({ draft:'', screen:'capture' }); }
+  setStoryShape(s){ this.setState({ storyShape:s }); }
+
+  allEntries(){ return [ ...this.state.journal, ...this.ENTRIES ]; }
+
+  goto(s){ this.setState({ screen:s }); }
+  openDetail(id){ this.setState({ activeId:id, screen:'detail' }); }
+
+  relMeta(rel){
+    if(rel==='strong') return { op:.5,  w:1.7, label:'a strong thread', color:'#c9a24b' };
+    if(rel==='medium') return { op:.32, w:1.2, label:'a clear thread',  color:'#a89668' };
+    return                     { op:.2,  w:.9, label:'a faint thread',  color:'#7c7666' };
+  }
+
+  layout(mode, W){
+    const ECH = this.ENTRIES;
+    const r = n => Math.round(n);
+    let cur, echoes = [];
+    if(mode==='margin'){
+      const curW = r(W*0.385), curRight = 40+curW;
+      cur = { left:40, top:40, width:curW };
+      const ex = r(W*0.585), ew = W-ex-36, ch=150, gap=24;
+      echoes = ECH.map((e,i)=>{
+        const top=40+i*(ch+gap), cy=top+ch/2, aY=128+i*120;
+        return { ...e, i, pos:{left:ex,top,width:ew},
+          threadD:`M ${curRight} ${aY} C ${curRight+95} ${aY}, ${ex-95} ${cy}, ${ex} ${cy}` };
+      });
+    } else if(mode==='constellation'){
+      const curW = r(W*0.31);
+      cur = { left:40, top:212, width:curW };
+      const ax=40+curW, ay=362, px=r(W*0.66), rx=r(W*0.225), ry=238, ew=r(W*0.235);
+      const angs=[-48,-15,20,52];
+      echoes = ECH.map((e,i)=>{
+        const a=angs[i]*Math.PI/180, cx=px+rx*Math.cos(a), cy=ay+ry*Math.sin(a);
+        let left=r(cx-ew/2); left=Math.min(left, W-ew-20);
+        return { ...e, i, pos:{left,top:r(cy-66),width:ew},
+          threadD:`M ${ax} ${ay} C ${ax+(cx-ax)*0.42} ${ay}, ${cx-110} ${cy}, ${cx} ${cy}` };
+      });
+    } else { // timeline
+      const curW = r(W*0.385), curRight=40+curW;
+      cur = { left:40, top:40, width:curW };
+      const ax=r(W*0.625), lx=ax+42, ew=W-lx-36, ch=132, gap=26;
+      const order=['e1','e2','e5','e6'];
+      echoes = order.map((id,i)=>{
+        const e=ECH.find(x=>x.id===id);
+        const top=58+i*(ch+gap), cy=top+30, aY=120+i*128;
+        return { ...e, i, ax, pos:{left:lx,top,width:ew},
+          threadD:`M ${curRight} ${aY} C ${curRight+90} ${aY}, ${ax-60} ${cy}, ${lx} ${cy}` };
+      });
+    }
+    return { cur, echoes };
+  }
+
+  spark(months){
+    const W=170,H=34,n=months.length,max=Math.max(...months,1);
+    const pts=months.map((m,i)=>{
+      const x=(i/(n-1)*W), y=(H-3 - (m/max)*(H-8));
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const area=`0,${H} ${pts.join(' ')} ${W},${H}`;
+    return { sparkPoints:pts.join(' '), areaPoints:area };
+  }
+
+  storyLayout(W){
+    const all=this.allEntries();
+    const N=all.length;
+    const H=540, pad=72, cx=W/2, cy=H/2-4;
+    // links: any pair sharing a theme
+    const links=[];
+    for(let i=0;i<N;i++) for(let j=i+1;j<N;j++){
+      const shared=all[i].themes.filter(t=>all[j].themes.includes(t));
+      if(shared.length) links.push({ a:i, b:j, w:shared.length, theme:shared[0] });
+    }
+    const degree=all.map((_,i)=>links.filter(l=>l.a===i||l.b===i).reduce((s,l)=>s+l.w,0));
+    const maxDeg=Math.max(1,...degree);
+    const shape=this.state.storyShape||this.props.storyShape||'web';
+    const clampX=x=>Math.max(pad,Math.min(W-pad,x)), clampY=y=>Math.max(pad,Math.min(H-pad,y));
+    const sc=Math.min(W,820)/820;
+    const pos=all.map((e,i)=>{
+      let x,y;
+      if(shape==='spiral'){
+        const ang=i*2.39996, r=(46+54*Math.sqrt(i))*sc;
+        x=cx+r*Math.cos(ang); y=cy+r*Math.sin(ang)*0.86;
+      } else if(shape==='timeline'){
+        const x0=pad+ (N>1 ? (N-1-i)/(N-1) : 0.5)*(W-pad*2);
+        const band=['restlessness','attention','stillness','rest','honesty','patience','mornings','reflection'].indexOf(e.themes[0]);
+        x=x0; y=cy + ((band%5)-2)*52;
+      } else { // web — connected nodes pulled toward centre
+        const ang=(i/N)*Math.PI*2 - Math.PI/2;
+        const r=(0.62 - (degree[i]/maxDeg)*0.24)*Math.min(W-pad*2,H-pad*2)*0.62 + 46;
+        x=cx+r*Math.cos(ang); y=cy+r*Math.sin(ang)*0.92;
+      }
+      return { x:clampX(x), y:clampY(y), r:Math.max(9,Math.min(26, 9+Math.sqrt(degree[i])*3.4)) };
+    });
+    return { all, links, pos, H, degree };
+  }
+
+  storyShapeNow(){ return this.state.storyShape||this.props.storyShape||'web'; }
+
+  renderVals(){
+    const { screen, draft, mode } = this.state;
+    const vw = (typeof window!=='undefined' && window.innerWidth) ? window.innerWidth : 1280;
+    const W = Math.min(1180, Math.max(800, vw-72));
+    const H = 720;
+    const lay = this.layout(mode, W);
+    const axisX = (lay.echoes[0] && lay.echoes[0].ax) || Math.round(W*0.625);
+    const A = this.props.accent || '#c9a24b';
+    const tone = this.props.mirrorTone || 'gentle';
+    const showReadings = this.props.showReadings !== false;
+
+    const echoes = lay.echoes.map(e=>{
+      const m=this.relMeta(e.rel);
+      return { ...e,
+        relLabel:m.label, relColor: e.rel==='strong'?A:m.color,
+        reason: tone==='unflinching' ? (e.reasonSharp||e.reason) : e.reason,
+        open:()=>this.openDetail(e.id),
+        styleObj:{ position:'absolute', left:e.pos.left+'px', top:e.pos.top+'px', width:e.pos.width+'px', zIndex:3,
+          opacity:1, animation:`echoSlide .8s cubic-bezier(.2,.7,.2,1) ${(0.12+e.i*0.12).toFixed(2)}s both`,
+          transition:'left .85s cubic-bezier(.6,.05,.2,1), top .85s cubic-bezier(.6,.05,.2,1), width .6s ease' },
+        threadStyle:{ fill:'none', stroke:this.hexA(A,m.op), strokeWidth:m.w, strokeLinecap:'round' } };
+    });
+
+    const curStyleObj = { position:'absolute', left:lay.cur.left+'px', top:lay.cur.top+'px', width:lay.cur.width+'px', zIndex:4,
+      opacity:1,
+      transition:'left .85s cubic-bezier(.6,.05,.2,1), top .85s cubic-bezier(.6,.05,.2,1), width .6s ease' };
+
+    // mode tabs
+    const tabDef=[['margin','Margin'],['constellation','Constellation'],['timeline','Timeline']];
+    const modeTabs = tabDef.map(([k,label])=>({ label,
+      onClick:()=>this.setState({mode:k}),
+      styleObj:{ cursor:'pointer', color: mode===k?A:'#7c7666',
+        borderBottom: mode===k?('1px solid '+this.hexA(A,.6)):'1px solid transparent', paddingBottom:'3px', transition:'color .3s' } }));
+
+    // nav
+    const navDef=[['capture','Write'],['surfacing','Connections'],['story','Story'],['themes','Themes']];
+    const activeNav = screen==='detail' ? 'story' : screen;
+    const navItems = navDef.map(([k,label])=>({ label, key:k,
+      onClick:()=>this.goto(k),
+      styleObj:{ fontFamily:"'Spline Sans Mono',monospace", fontSize:'10.5px', letterSpacing:'.16em', textTransform:'uppercase',
+        cursor:'pointer', color: activeNav===k?'#e8e2d4':'#615b4f', transition:'color .3s' } }));
+
+    // detail (works for seed + user entries)
+    const byId = id => this.allEntries().find(x=>x.id===id);
+    const ae = byId(this.state.activeId) || this.ENTRIES[0];
+    let aeLinks;
+    if(ae.links){
+      aeLinks = ae.links.map(l=>{ const t=byId(l.id)||{}; return { date:t.date, text:t.text, reason: tone==='unflinching' ? (l.reasonSharp||l.reason) : l.reason, open:()=>this.openDetail(l.id) }; });
+    } else {
+      // computed neighbours for a freshly-written entry
+      aeLinks = this.allEntries().filter(x=>x.id!==ae.id && x.themes.some(t=>ae.themes.includes(t)))
+        .slice(0,3).map(t=>{ const shared=t.themes.find(x=>ae.themes.includes(x)); return { date:t.date, text:t.text, reason:`Shares the thread of “${shared}” — the app’s reading, not a label you chose.`, open:()=>this.openDetail(t.id) }; });
+    }
+    const activeEntry = { ...ae,
+      revisions: (ae.revisions||[]).map((r,i)=>({ ...r, dot: i===0 ? A : '#5c5648' })),
+      links: aeLinks };
+
+    // themes
+    const themes = this.THEMES.map(t=>({ ...t, ...this.spark(t.months) }));
+
+    const scale = 1;
+    const stageWrapStyle = { width:'100%' };
+    const stageStyle = { width:W+'px', height:H+'px', position:'relative', margin:'0 auto' };
+    const svgViewBox = `0 0 ${W} ${H}`;
+
+    // ---- story (visual map of every reflection) ----
+    const SL = this.storyLayout(W);
+    const storyShape = this.storyShapeNow();
+    const storyTabs = [['web','Web'],['spiral','Spiral'],['timeline','Timeline']].map(([k,label])=>({ label,
+      onClick:()=>this.setStoryShape(k),
+      styleObj:{ cursor:'pointer', color: storyShape===k?A:'#7c7666',
+        borderBottom: storyShape===k?('1px solid '+this.hexA(A,.6)):'1px solid transparent', paddingBottom:'3px', transition:'color .3s' } }));
+    const hov = this.state.hoverNode;
+    const storyNodes = SL.all.map((e,i)=>{
+      const p=SL.pos[i], col=this.themeColor(e.themes[0]), hovered=hov===e.id;
+      return { id:e.id, cx:p.x, cy:p.y, r:p.r, label:e.date, labelY:p.y+p.r+14,
+        circleStyle:{ fill: e.user ? '#15140f' : this.hexA(col,.9), stroke:col, strokeWidth: e.user?2:1.4,
+          cursor:'pointer', opacity:(hov&&!hovered)?0.4:1, transition:'opacity .3s' },
+        ringStyle:{ fill:'none', stroke:col, strokeWidth:1, opacity: e.user?0.5:0 },
+        ringR: p.r+5,
+        labelStyle:{ fontFamily:"'Spline Sans Mono',monospace", fontSize:'9px', letterSpacing:'.08em',
+          fill: hovered?'#e8e2d4':'#857c6d', textAnchor:'middle', pointerEvents:'none' },
+        onEnter:()=>this.setState({hoverNode:e.id}), onLeave:()=>this.setState({hoverNode:null}),
+        open:()=>this.openDetail(e.id) };
+    });
+    const storyLinks = SL.links.map(l=>{
+      const a=SL.pos[l.a], b=SL.pos[l.b], col=this.themeColor(l.theme);
+      const hl = hov && (SL.all[l.a].id===hov || SL.all[l.b].id===hov);
+      return { x1:a.x, y1:a.y, x2:b.x, y2:b.y,
+        style:{ stroke: hl?this.hexA(col,.65):this.hexA(col,.16), strokeWidth: hl?1.7:1, transition:'stroke .3s,stroke-width .3s' } };
+    });
+    const hoverEntry = hov ? SL.all.find(e=>e.id===hov) : null;
+    const usedThemes = [...new Set(SL.all.flatMap(e=>e.themes))];
+    const legend = usedThemes.map(t=>({ name:t, dotStyle:{ width:'8px', height:'8px', borderRadius:'50%', background:this.themeColor(t), display:'inline-block' } }));
+    const storyViewBox = `0 0 ${W} ${SL.H}`;
+
+    const today = new Date(2026,5,29);
+    const dn=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][today.getDay()];
+    const mn=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'][today.getMonth()];
+
+    return {
+      isCapture: screen==='capture', isSurfacing: screen==='surfacing', isDetail: screen==='detail', isThemes: screen==='themes', isStory: screen==='story',
+      draft, onInput:(e)=>this.setState({draft:e.target.value}),
+      listening: (draft||'').trim().length>40, nearbyCount:4,
+      surface:()=>{ this.saveDraft(); this.goto('surfacing'); },
+      newEntry:()=>this.newEntry(),
+      goWrite:()=>this.goto('capture'), goSurf:()=>this.goto('surfacing'), goThemes:()=>this.goto('themes'), goStory:()=>this.goto('story'),
+      goBack:()=>this.goto('story'),
+      todayLabel:`${dn} · ${mn} ${today.getDate()}`,
+      echoes, curStyleObj, modeTabs, navItems,
+      axisShow: mode==='timeline',
+      axisStyle:{ stroke:'rgba(232,226,212,.1)', strokeWidth:1, strokeDasharray:'2 5' },
+      activeEntry, themes, stageWrapStyle, stageStyle, svgViewBox, axisX,
+      showReadings, tone,
+      readingLabel: tone==='unflinching' ? 'What you might be avoiding — the app’s reading' : 'Why it surfaced — the app’s reading',
+      toneNote: tone==='unflinching' ? 'Set to reflect your patterns back plainly — the app errs toward honesty, even when it stings.' : 'Offered gently. The app stays close to your own words.',
+      storyTabs, storyNodes, storyLinks, hoverEntry, storyViewBox, storyIdle: !hoverEntry,
+      legend, storyCount: SL.all.length, userCount: this.state.journal.length,
+    };
+  }
+}
+</script>
+</body>
+</html>
