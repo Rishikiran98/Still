@@ -177,6 +177,69 @@ export function computeStoryLayout(
   return { links, pos, H };
 }
 
+export interface SerendipityPick {
+  key: string;          // stable id for the pair, so "another" can avoid repeats
+  a: Entry;
+  b: Entry;
+  theme: string;
+  reasonGentle: string;
+  reasonSharp: string;
+}
+
+function monthIndex(date: string): number {
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return m.indexOf((date || '').slice(0, 3));
+}
+
+/**
+ * The serendipity move: surface one connection the user never drew — two
+ * entries that share a thread but aren't already linked, preferring pairs far
+ * apart in time (the "huh, I didn't connect those" delight). Bounded by design
+ * — it hands back a single pair, never a feed.
+ */
+export function findSerendipity(entries: Entry[], avoidKey?: string): SerendipityPick | null {
+  const N = entries.length;
+  if (N < 2) return null;
+
+  type Cand = { a: Entry; b: Entry; theme: string; dist: number; key: string };
+  const cands: Cand[] = [];
+
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const A = entries[i], B = entries[j];
+      const shared = A.themes.filter(t => B.themes.includes(t));
+      if (!shared.length) continue;
+      // Skip pairs the app already explicitly linked — those aren't surprises.
+      const alreadyLinked =
+        (A.links || []).some(l => l.id === B.id) ||
+        (B.links || []).some(l => l.id === A.id);
+      if (alreadyLinked) continue;
+
+      const mi = monthIndex(A.date), mj = monthIndex(B.date);
+      const yearA = parseInt(A.year || '0', 10), yearB = parseInt(B.year || '0', 10);
+      const dist = Math.abs((yearA * 12 + mi) - (yearB * 12 + mj)); // months apart
+      cands.push({ a: A, b: B, theme: shared[0], dist, key: [A.id, B.id].sort().join('~') });
+    }
+  }
+  if (!cands.length) return null;
+
+  // Prefer the more time-distant, surprising pairs; pick randomly among the top.
+  cands.sort((x, y) => y.dist - x.dist);
+  const pool = cands.filter(c => c.key !== avoidKey);
+  const choices = (pool.length ? pool : cands).slice(0, Math.max(3, Math.ceil(cands.length / 3)));
+  const c = choices[Math.floor(Math.random() * choices.length)];
+
+  const span = c.dist >= 1 ? `${c.dist} month${c.dist === 1 ? '' : 's'} apart` : 'within the same month';
+  return {
+    key: c.key,
+    a: c.a,
+    b: c.b,
+    theme: c.theme,
+    reasonGentle: `Both of these turn around “${c.theme}” — ${span}, you were quietly circling the same thing.`,
+    reasonSharp: `“${c.theme}” keeps surfacing. ${c.a.date} and ${c.b.date} are the same thought wearing different days — you just never set them side by side.`,
+  };
+}
+
 const JOURNAL_KEY = 'still.journal.v1';
 
 export function loadJournal(): Entry[] {

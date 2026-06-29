@@ -58,7 +58,89 @@ export const SEED_ENTRIES: Entry[] = [
       { id: 'e2', reason: 'Both are about trusting a slower pace.' },
     ],
   },
+
+  // ── A fuller history, so the graph and themes feel alive from the first open ──
+  {
+    id: 'e3', date: 'Jan 9', year: '2026',
+    text: 'I told her I was fine. It wasn’t a lie exactly — more that I hadn’t checked.',
+    themes: ['honesty', 'attention'],
+    revisions: [{ when: 'Jan 9 · 10:12pm', note: 'First written' }],
+    links: [{ id: 'e8', reason: 'The same reflex: smoothing things over before you’ve looked at them.' }],
+  },
+  {
+    id: 'e4', date: 'Oct 22', year: '2025',
+    text: 'Took the long way home for no reason and felt like myself for the first time in days.',
+    themes: ['rest', 'patience'],
+    revisions: [{ when: 'Oct 22 · 6:40pm', note: 'First written' }],
+  },
+  {
+    id: 'e7', date: 'Apr 2', year: '2026',
+    text: 'I noticed the light on the wall before I noticed my phone. Small, but I’m counting it.',
+    themes: ['attention', 'mornings'],
+    revisions: [
+      { when: 'Apr 2 · 7:05am', note: 'First written' },
+      { when: 'Apr 2 · 7:20am', note: 'Added the last sentence' },
+    ],
+    links: [{ id: 'e2', reason: 'Both are small wins for attention over the phone.' }],
+  },
+  {
+    id: 'e8', date: 'Sep 15', year: '2025',
+    text: 'Said yes to three things I didn’t want. The wanting-to-be-liked is louder than I admit.',
+    themes: ['honesty', 'restlessness'],
+    revisions: [{ when: 'Sep 15 · 11:48pm', note: 'First written' }],
+    links: [{ id: 'e1', reason: 'The motion you mistake for progress is partly other people’s asks.' }],
+  },
+  {
+    id: 'e9', date: 'Feb 1', year: '2026',
+    text: 'Slept nine hours and woke up guilty. Wrote that down to see how strange it looks.',
+    themes: ['rest', 'honesty'],
+    revisions: [{ when: 'Feb 1 · 8:30am', note: 'First written' }],
+    links: [{ id: 'e5', reason: 'Rest as something you have to earn — here it is again, in the guilt.' }],
+  },
+  {
+    id: 'e10', date: 'Dec 28', year: '2025',
+    text: 'A whole year, and the thing I kept circling was permission. To stop. To want less.',
+    themes: ['patience', 'reflection'],
+    revisions: [{ when: 'Dec 28 · 9:00pm', note: 'First written — year’s end' }],
+  },
+  {
+    id: 'e11', date: 'Mar 20', year: '2026',
+    text: 'The kettle, the window, the ten quiet minutes before anyone needs me. That’s the hour I’d keep.',
+    themes: ['mornings', 'stillness'],
+    revisions: [{ when: 'Mar 20 · 6:50am', note: 'First written' }],
+    links: [{ id: 'e2', reason: 'The same morning quiet, named as the thing worth protecting.' }],
+  },
+  {
+    id: 'e12', date: 'Nov 11', year: '2025',
+    text: 'Busy is the costume tiredness wears so no one asks if I’m okay.',
+    themes: ['restlessness', 'rest'],
+    revisions: [{ when: 'Nov 11 · 10:30pm', note: 'First written' }],
+    links: [{ id: 'e1', reason: 'Motion-as-hiding, said plainly.' }],
+  },
+  {
+    id: 'e13', date: 'May 6', year: '2026',
+    text: 'Reread January’s entries. I sound like someone asking for help in a language only I can read.',
+    themes: ['attention', 'reflection'],
+    revisions: [{ when: 'May 6 · 9:15pm', note: 'First written' }],
+  },
+  {
+    id: 'e14', date: 'Jan 27', year: '2026',
+    text: 'Trying to force the insight is just restlessness wearing a thoughtful face.',
+    themes: ['patience', 'restlessness'],
+    revisions: [{ when: 'Jan 27 · 7:55pm', note: 'First written' }],
+    links: [{ id: 'e6', reason: 'The sea doesn’t force it either.' }],
+  },
+  {
+    id: 'e15', date: 'Oct 3', year: '2025',
+    text: 'The silence wasn’t empty. I just wasn’t used to being the only one in it.',
+    themes: ['stillness', 'honesty'],
+    revisions: [{ when: 'Oct 3 · 8:40pm', note: 'First written' }],
+  },
 ];
+
+/** The four entries that lean toward the current reflection on the Surfacing
+ *  screen — the curated echoes, each with a relation strength and a reason. */
+export const SURFACING_ECHOES = SEED_ENTRIES.filter(e => e.rel);
 
 export const THEMES: ThemeData[] = [
   { name: 'restlessness', count: 9, excerpt: 'mistaking motion for progress', months: [1,2,1,3,1,1] },

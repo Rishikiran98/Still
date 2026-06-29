@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Screen, SurfacingMode, StoryShape, AppSettings, Entry, SessionState } from '@/lib/types';
-import { DEFAULT_DRAFT, SEED_ENTRIES, THEMES } from '@/lib/data';
+import { DEFAULT_DRAFT, SEED_ENTRIES, SURFACING_ECHOES, THEMES } from '@/lib/data';
 import {
   hexA, loadJournal, persistJournal, tagThemes, shortDate, timeStr,
-  computeLayout, computeStoryLayout, allEntries, byId,
+  computeLayout, computeStoryLayout, allEntries, byId, findSerendipity, SerendipityPick,
 } from '@/lib/utils';
 
 import Nav from '@/components/Nav';
@@ -15,6 +15,7 @@ import EntryDetail from '@/components/screens/EntryDetail';
 import Themes from '@/components/screens/Themes';
 import Story from '@/components/screens/Story';
 import Closing from '@/components/screens/Closing';
+import Serendipity from '@/components/Serendipity';
 
 const EMPTY_SESSION: SessionState = { wrote: false, surfaced: false, openedIds: [] };
 
@@ -33,6 +34,7 @@ export default function StillApp() {
   const [storyShape, setStoryShape] = useState<StoryShape>('web');
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION);
+  const [surprise, setSurprise] = useState<SerendipityPick | null>(null);
   const [W, setW] = useState(900);
   const [mounted, setMounted] = useState(false);
 
@@ -114,10 +116,14 @@ export default function StillApp() {
     setScreen('capture');
   }, []);
 
+  const surpriseMe = useCallback(() => {
+    setSurprise(prev => findSerendipity(allEntries(journal), prev?.key));
+  }, [journal]);
+
   // Compute layout values
   const entries = allEntries(journal);
   const surfW = Math.min(1120, W);
-  const layout = computeLayout(mode, surfW, SEED_ENTRIES, settings.accent, settings.mirrorTone);
+  const layout = computeLayout(mode, surfW, SURFACING_ECHOES, settings.accent, settings.mirrorTone);
   const storyLayout = computeStoryLayout(entries, W, storyShape);
 
   // Detail entry
@@ -239,6 +245,7 @@ export default function StillApp() {
           accent={settings.accent}
           onOpenDetail={openDetail}
           journalCount={journal.length}
+          onSurprise={surpriseMe}
         />
       )}
 
@@ -249,6 +256,17 @@ export default function StillApp() {
           accent={settings.accent}
           onBegin={beginAgain}
           onStay={() => goto('story')}
+        />
+      )}
+
+      {surprise && (
+        <Serendipity
+          pick={surprise}
+          accent={settings.accent}
+          tone={settings.mirrorTone}
+          onAnother={surpriseMe}
+          onClose={() => setSurprise(null)}
+          onOpenDetail={(id) => { setSurprise(null); openDetail(id); }}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useState } from 'react';
+import { CSSProperties, useState, useEffect } from 'react';
 import { SurfacingMode, EchoCard, AppSettings } from '@/lib/types';
 import { hexA } from '@/lib/utils';
 import Reading from '@/components/Reading';
@@ -25,6 +25,14 @@ export default function Surfacing({
   const { accent, showReadings, mirrorTone } = settings;
   const mono: CSSProperties = { fontFamily: "'Spline Sans Mono', monospace" };
   const serif: CSSProperties = { fontFamily: "'Newsreader', Georgia, serif" };
+
+  // The reveal: a brief "reading…" beat, then threads draw in and echoes fade
+  // up one by one — so the connection lands as a moment, not a static layout.
+  const [revealing, setRevealing] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setRevealing(true), 850);
+    return () => clearTimeout(t);
+  }, []);
 
   const modeTabs: [SurfacingMode, string][] = [['margin','Margin'],['constellation','Constellation'],['timeline','Timeline']];
 
@@ -81,11 +89,15 @@ export default function Surfacing({
               <path
                 key={echo.id ?? i}
                 d={echo.threadD}
+                pathLength={1}
                 style={{
                   fill: 'none',
                   stroke: hexA(accent, echo.rel === 'strong' ? 0.5 : echo.rel === 'medium' ? 0.32 : 0.2),
                   strokeWidth: echo.rel === 'strong' ? 1.7 : echo.rel === 'medium' ? 1.2 : 0.9,
                   strokeLinecap: 'round',
+                  strokeDasharray: 1,
+                  strokeDashoffset: revealing ? 0 : 1,
+                  transition: `stroke-dashoffset .8s ease ${(0.15 + i * 0.13).toFixed(2)}s`,
                 }}
               />
             ))}
@@ -113,12 +125,29 @@ export default function Surfacing({
             <EchoCardEl
               key={echo.id}
               echo={echo}
+              revealing={revealing}
               showReadings={showReadings}
               readingLabel={readingLabel}
               accent={accent}
               onOpen={() => onOpenDetail(echo.id)}
             />
           ))}
+
+          {/* The "reading…" beat before the connections land */}
+          {!revealing && (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
+            }}>
+              <div style={{ ...mono, fontSize: 12, letterSpacing: '.2em', textTransform: 'uppercase', color: accent, display: 'flex', alignItems: 'center', gap: 4 }}>
+                reading your words
+                <span style={{ animation: 'readingDots 1.2s ease-in-out infinite' }}>·</span>
+                <span style={{ animation: 'readingDots 1.2s ease-in-out .2s infinite' }}>·</span>
+                <span style={{ animation: 'readingDots 1.2s ease-in-out .4s infinite' }}>·</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -174,8 +203,9 @@ function ModeTab({ label, active, accent, onClick }: { label: string; active: bo
   );
 }
 
-function EchoCardEl({ echo, showReadings, readingLabel, accent, onOpen }: {
+function EchoCardEl({ echo, revealing, showReadings, readingLabel, accent, onOpen }: {
   echo: EchoCard;
+  revealing: boolean;
   showReadings: boolean;
   readingLabel: string;
   accent: string;
@@ -185,13 +215,15 @@ function EchoCardEl({ echo, showReadings, readingLabel, accent, onOpen }: {
   const mono: CSSProperties = { fontFamily: "'Spline Sans Mono', monospace" };
   const serif: CSSProperties = { fontFamily: "'Newsreader', Georgia, serif" };
 
+  // Each card fades up as its thread completes — staggered behind the reveal.
   return (
     <div style={{
       position: 'absolute',
       left: echo.pos.left, top: echo.pos.top, width: echo.pos.width,
-      zIndex: 3, opacity: 1,
-      animation: `echoSlide .8s cubic-bezier(.2,.7,.2,1) ${(0.12 + echo.i * 0.12).toFixed(2)}s both`,
-      transition: 'left .85s cubic-bezier(.6,.05,.2,1), top .85s cubic-bezier(.6,.05,.2,1), width .6s ease',
+      zIndex: 3,
+      opacity: revealing ? 1 : 0,
+      animation: revealing ? `echoSlide .8s cubic-bezier(.2,.7,.2,1) ${(0.25 + echo.i * 0.14).toFixed(2)}s both` : 'none',
+      transition: 'left .85s cubic-bezier(.6,.05,.2,1), top .85s cubic-bezier(.6,.05,.2,1), width .6s ease, opacity .4s ease',
     }}>
       <div
         onClick={onOpen}

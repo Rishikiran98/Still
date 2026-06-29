@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useState } from 'react';
+import { CSSProperties, useState, useRef, useEffect, useCallback, PointerEvent as ReactPointerEvent } from 'react';
 import { Entry, StoryShape, StoryPos, StoryLinkData } from '@/lib/types';
 import { hexA, themeColor } from '@/lib/utils';
 
@@ -15,25 +15,151 @@ interface StoryProps {
   accent: string;
   onOpenDetail: (id: string) => void;
   journalCount: number;
+  onSurprise: () => void;
 }
 
+interface SimNode { x: number; y: number; vx: number; vy: number; }
+
+const mono: CSSProperties = { fontFamily: "'Spline Sans Mono', monospace" };
+const serif: CSSProperties = { fontFamily: "'Newsreader', Georgia, serif" };
+
 export default function Story({
-  entries, pos, links, storyH, W, shape, setShape, accent, onOpenDetail, journalCount,
+  entries, pos, links, storyH, W, shape, setShape, accent, onOpenDetail, journalCount, onSurprise,
 }: StoryProps) {
   const [hoverNode, setHoverNode] = useState<string | null>(null);
-  const mono: CSSProperties = { fontFamily: "'Spline Sans Mono', monospace" };
-  const serif: CSSProperties = { fontFamily: "'Newsreader', Georgia, serif" };
+  const [, setFrame] = useState(0);
+
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const sim = useRef<SimNode[]>([]);
+  const targets = useRef<StoryPos[]>(pos);
+  const radii = useRef<number[]>(pos.map(p => p.r));
+  const drag = useRef<{ i: number; moved: number; id: string } | null>(null);
+  const raf = useRef<number | null>(null);
+  const tRef = useRef(0);
+
+  // (Re)seed the simulation when the node set changes; otherwise just retarget
+  // (so switching shape springs the existing nodes to their new homes).
+  useEffect(() => {
+    targets.current = pos;
+    radii.current = pos.map(p => p.r);
+    if (sim.current.length !== pos.length) {
+      sim.current = pos.map(p => ({ x: p.x, y: p.y, vx: 0, vy: 0 }));
+    }
+    start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pos, shape]);
+
+  const step = useCallback(() => {
+    const nodes = sim.current;
+    const tg = targets.current;
+    const rs = radii.current;
+    const N = nodes.length;
+    tRef.current += 0.016;
+    const t = tRef.current;
+
+    const kT = 0.014, damp = 0.84;
+    let energy = 0;
+
+    for (let i = 0; i < N; i++) {
+      const n = nodes[i];
+      if (drag.current && drag.current.i === i) { energy += 1; continue; }
+
+      // Spring toward home, with a tiny idle wander so nothing looks frozen.
+      const tx = tg[i].x + Math.sin(t * 0.6 + i * 1.3) * 2.2;
+      const ty = tg[i].y + Math.cos(t * 0.5 + i * 0.7) * 2.2;
+      let ax = -kT * (n.x - tx);
+      let ay = -kT * (n.y - ty);
+
+      // Soft repulsion so nodes don't overlap.
+      for (let j = 0; j < N; j++) {
+        if (j === i) continue;
+        const dx = n.x - nodes[j].x, dy = n.y - nodes[j].y;
+        const d2 = dx * dx + dy * dy;
+        const min = rs[i] + rs[j] + 16;
+        if (d2 < min * min && d2 > 0.01) {
+          const d = Math.sqrt(d2), f = (min - d) / d * 0.06;
+          ax += dx * f; ay += dy * f;
+        }
+      }
+
+      // When a node is dragged, its linked neighbours lean toward it.
+      const held = drag.current;
+      if (held) {
+        for (const l of links) {
+          let other = -1;
+          if (l.a === i && l.b === held.i) other = held.i;
+          else if (l.b === i && l.a === held.i) other = held.i;
+          if (other >= 0) {
+            ax += (nodes[other].x - n.x) * 0.015;
+            ay += (nodes[other].y - n.y) * 0.015;
+          }
+        }
+      }
+
+      n.vx = (n.vx + ax) * damp;
+      n.vy = (n.vy + ay) * damp;
+      n.x += n.vx; n.y += n.vy;
+      energy += n.vx * n.vx + n.vy * n.vy;
+    }
+
+    setFrame(f => (f + 1) & 0xffff);
+
+    // Keep running while there's motion, a drag, or idle wander to render.
+    if (energy > 0.02 || drag.current) {
+      raf.current = requestAnimationFrame(step);
+    } else {
+      raf.current = null;
+    }
+  }, [links]);
+
+  const start = useCallback(() => {
+    if (raf.current == null) raf.current = requestAnimationFrame(step);
+  }, [step]);
+
+  useEffect(() => {
+    start();
+    return () => { if (raf.current != null) cancelAnimationFrame(raf.current); raf.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Map a screen point into SVG (viewBox) coordinates.
+  const toSvg = (clientX: number, clientY: number) => {
+    const r = svgRef.current?.getBoundingClientRect();
+    if (!r) return { x: 0, y: 0 };
+    return { x: (clientX - r.left) * (W / r.width), y: (clientY - r.top) * (storyH / r.height) };
+  };
+
+  const onPointerDownNode = (i: number, id: string) => (e: ReactPointerEvent) => {
+    e.preventDefault();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    drag.current = { i, moved: 0, id };
+    start();
+  };
+  const onPointerMove = (e: ReactPointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    const p = toSvg(e.clientX, e.clientY);
+    const n = sim.current[d.i];
+    d.moved += Math.abs(p.x - n.x) + Math.abs(p.y - n.y);
+    n.vx = p.x - n.x; n.vy = p.y - n.y;     // carry momentum on release
+    n.x = p.x; n.y = p.y;
+    start();
+  };
+  const endDrag = (e: ReactPointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    start();
+    if (d.moved < 5) onOpenDetail(d.id);      // it was a click, not a drag
+    (e.target as Element).releasePointerCapture?.(e.pointerId);
+  };
 
   const shapeTabs: [StoryShape, string][] = [['web','Web'],['spiral','Spiral'],['timeline','Timeline']];
   const hoverEntry = hoverNode ? entries.find(e => e.id === hoverNode) : null;
-
   const usedThemes = [...new Set(entries.flatMap(e => e.themes))];
-  const legend = usedThemes.slice(0, 6).map(t => ({
-    name: t,
-    color: themeColor(t, accent),
-  }));
-
+  const legend = usedThemes.slice(0, 6).map(t => ({ name: t, color: themeColor(t, accent) }));
   const storyViewBox = `0 0 ${W} ${storyH}`;
+  const nodes = sim.current.length === entries.length ? sim.current : pos.map(p => ({ x: p.x, y: p.y, vx: 0, vy: 0 }));
 
   return (
     <div style={{ position: 'relative', zIndex: 10, minHeight: '100vh', padding: '104px 0 56px' }}>
@@ -51,6 +177,8 @@ export default function Story({
           </div>
         </div>
         <div style={{ display: 'flex', gap: 18, alignItems: 'center', ...mono, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <SurpriseButton onSurprise={onSurprise} accent={accent} />
+          <span style={{ color: '#3a362e' }}>|</span>
           <span style={{ color: '#514c42' }}>shape</span>
           {shapeTabs.map(([k, label]) => (
             <ShapeTab key={k} label={label} active={shape === k} accent={accent} onClick={() => setShape(k)} />
@@ -58,12 +186,18 @@ export default function Story({
         </div>
       </div>
 
-      {/* SVG constellation */}
+      {/* SVG constellation — draggable */}
       <div style={{ maxWidth: 1180, margin: '0 auto', width: '100%' }}>
-        <svg viewBox={storyViewBox} style={{ width: '100%', height: storyH, overflow: 'visible', display: 'block' }}>
+        <svg
+          ref={svgRef}
+          viewBox={storyViewBox}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          style={{ width: '100%', height: storyH, overflow: 'visible', display: 'block', touchAction: 'none' }}
+        >
           {/* Thread lines */}
           {links.map((ln, i) => {
-            const a = pos[ln.a], b = pos[ln.b];
+            const a = nodes[ln.a], b = nodes[ln.b];
             if (!a || !b) return null;
             const col = themeColor(ln.theme, accent);
             const hl = hoverNode && (entries[ln.a]?.id === hoverNode || entries[ln.b]?.id === hoverNode);
@@ -71,55 +205,41 @@ export default function Story({
               <line
                 key={i}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                style={{
-                  stroke: hl ? hexA(col, 0.65) : hexA(col, 0.16),
-                  strokeWidth: hl ? 1.7 : 1,
-                  transition: 'stroke .3s, stroke-width .3s',
-                }}
+                style={{ stroke: hl ? hexA(col, 0.65) : hexA(col, 0.16), strokeWidth: hl ? 1.7 : 1 }}
               />
             );
           })}
 
           {/* Nodes */}
           {entries.map((e, i) => {
-            const p = pos[i];
+            const p = nodes[i];
+            const r = radii.current[i] ?? pos[i]?.r ?? 12;
             if (!p) return null;
             const col = themeColor(e.themes[0] || 'reflection', accent);
             const hovered = hoverNode === e.id;
+            const dragging = drag.current?.i === i;
 
             return (
               <g
                 key={e.id}
-                onClick={() => onOpenDetail(e.id)}
+                onPointerDown={onPointerDownNode(i, e.id)}
                 onMouseEnter={() => setHoverNode(e.id)}
                 onMouseLeave={() => setHoverNode(null)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: dragging ? 'grabbing' : 'grab' }}
               >
-                {/* Outer ring for user entries */}
-                <circle
-                  cx={p.x} cy={p.y} r={p.r + 5}
-                  style={{ fill: 'none', stroke: col, strokeWidth: 1, opacity: e.user ? 0.5 : 0, pointerEvents: 'none' }}
-                />
-                {/* Main node */}
-                <circle
-                  cx={p.x} cy={p.y} r={p.r}
+                <circle cx={p.x} cy={p.y} r={r + 5}
+                  style={{ fill: 'none', stroke: col, strokeWidth: 1, opacity: e.user ? 0.5 : 0, pointerEvents: 'none' }} />
+                <circle cx={p.x} cy={p.y} r={dragging ? r + 1.5 : r}
                   style={{
                     fill: e.user ? '#15140f' : hexA(col, 0.9),
                     stroke: col, strokeWidth: e.user ? 2 : 1.4,
-                    cursor: 'pointer',
                     opacity: (hoverNode && !hovered) ? 0.4 : 1,
-                    transition: 'opacity .3s',
-                  }}
-                />
-                {/* Date label */}
-                <text
-                  x={p.x} y={p.y + p.r + 14}
+                  }} />
+                <text x={p.x} y={p.y + r + 14}
                   style={{
-                    fontFamily: "'Spline Sans Mono', monospace", fontSize: 9,
-                    letterSpacing: '.08em', fill: hovered ? '#e8e2d4' : '#857c6d',
-                    textAnchor: 'middle', pointerEvents: 'none',
-                  }}
-                >
+                    fontFamily: "'Spline Sans Mono', monospace", fontSize: 9, letterSpacing: '.08em',
+                    fill: hovered ? '#e8e2d4' : '#857c6d', textAnchor: 'middle', pointerEvents: 'none',
+                  }}>
                   {e.date}
                 </text>
               </g>
@@ -140,7 +260,7 @@ export default function Story({
             </div>
           ) : (
             <div style={{ ...mono, fontSize: 10.5, letterSpacing: '.06em', color: '#514c42' }}>
-              Hover a reflection to read it in your own words · click to open it
+              Drag a reflection to pull the web · click to open it · hover to read it in your own words
             </div>
           )}
         </div>
@@ -177,6 +297,27 @@ function ShapeTab({ label, active, accent, onClick }: { label: string; active: b
       }}
     >
       {label}
+    </span>
+  );
+}
+
+function SurpriseButton({ onSurprise, accent }: { onSurprise: () => void; accent: string }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <span
+      onClick={onSurprise}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: 'pointer', fontFamily: "'Spline Sans Mono', monospace",
+        fontSize: '10.5px', letterSpacing: '.1em', textTransform: 'uppercase',
+        color: hovered ? '#e8e2d4' : accent,
+        border: `1px solid ${hovered ? accent : hexA(accent, 0.4)}`,
+        background: hovered ? hexA(accent, 0.12) : 'transparent',
+        padding: '6px 12px', borderRadius: 2, transition: 'all .3s',
+      }}
+    >
+      ✦ Surprise me
     </span>
   );
 }
